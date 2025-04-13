@@ -1,0 +1,8 @@
+fly.toml
+venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.env
+firebase-key.json 
