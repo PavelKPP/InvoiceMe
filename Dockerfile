@@ -18,7 +18,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy all application files
 COPY handlers/ ./handlers/
 COPY services/ ./services/
-COPY templates/ ./templates/
 COPY bot.py config.py ./ 
 
 # Create and switch to non-root user

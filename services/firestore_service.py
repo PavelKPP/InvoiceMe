@@ -41,7 +41,7 @@ class FirestoreService:
         return doc.to_dict() if doc.exists else None
 
     @staticmethod
-    def create_or_update_user(telegram_id: str, business_id: str = None) -> None:
+    def create_or_update_user(telegram_id: str, user_data, business_id: str = None) -> None:
         user_ref = db.collection("users").document(telegram_id)
     
         if business_id:
@@ -54,9 +54,10 @@ class FirestoreService:
         else:
             # Initialize user if doesn't exist
             user_ref.set({
-                "telegram_id": telegram_id,
-                "balance": 0.0,
-                "subscription_end": "2024-12-31",
+                "user_id" : telegram_id,
+                "subscription_types" : user_data['subscription_types'],
+                "invoices_left": user_data['invoices_left'],
+                "subscription" : user_data['subscription'],
                 "created_at": firestore.SERVER_TIMESTAMP
             }, merge=True)
 
@@ -118,17 +119,21 @@ class FirestoreService:
     
     @staticmethod
     def get_user_details(telegram_id: str)  -> dict:
-        user_ref = db.collection("users").where("telegram_id", "==", telegram_id).limit(1)
+        user_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
         docs = user_ref.stream()
+
+        user_data = {}
 
         for doc in docs:
             user_data = doc.to_dict()
-            return {
-                "user_id": user_data.get("telegram_id"),
-                "balance": user_data.get("balance", 0.0),
-                "subscription": user_data.get("subscription_end", "2025-12-31")
-            }
-        return None
+        
+
+        return {
+            "user_id": user_data.get("user_id"),
+            "invoices_left": user_data.get("invoices_left"),
+            "subscription": user_data.get("subscription"),
+            "subscription_types": user_data.get("subscription_types")
+        }
     
     def get_users_invoices(telegram_id: str) -> list:
         user = FirestoreService.get_user(telegram_id)
@@ -176,3 +181,22 @@ class FirestoreService:
         for doc in docs:
             return {"id": doc.id, **doc.to_dict()}
         return None
+
+    @staticmethod
+    def get_subscription_period(telegram_id: str) -> str:
+        user_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
+        docs = user_ref.stream()
+
+        user_data = {}
+        
+        for doc in docs:
+            user_data = doc.to_dict()
+
+        return user_data.get("subscription")
+        
+    @staticmethod
+    def if_user_exists(telegram_id: str) -> bool:
+        users_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
+        docs = users_ref.stream()
+
+        return len(list(docs)) > 0

@@ -9,7 +9,7 @@ from telegram.ext import (
     CallbackContext,
     CallbackQueryHandler,
 )
-
+from datetime import datetime, timedelta
 from services.business_service import Business
 from services.invoice_service import Invoice
 from services.pdf_service import PDFInvoiceItimized, PDFInvoiceHourly
@@ -83,20 +83,29 @@ async def account_info_handler(update: Update, context: CallbackContext) -> int:
     await query.answer()
 
     user_id = str(query.from_user.id)
+
+
+    user_exists = FirestoreService.if_user_exists(user_id)
+
+
     user_data = FirestoreService.get_user_details(user_id)
 
-    if not user_data:
-        FirestoreService.create_or_update_user(user_id)
+    if not user_exists:
+        subscrtiption_end_date = (datetime.now() + timedelta(days=7)).strftime("%Y- %m-%d")
+
         user_data = {
             "user_id" : user_id,
-            "balance" : 0.0,
-            "subscription" : "2025-12-31"
+            "subscription_types" : "Freemium (7 Day Trial)",
+            "invoices_left": "unlimitted",
+            "subscription" : subscrtiption_end_date
         }
+        FirestoreService.create_or_update_user(user_id, user_data)
 
     message = (
         "👤 <b>Account Information</b>\n\n"
         f"🆔 User ID: <code>{user_data['user_id']}</code>\n"
-        f"💰 Balance: ${user_data['balance']:.2f}\n"
+        f"💰 Subscription Type: {user_data['subscription_types']}\n"
+        f"Invoices Left: {user_data['invoices_left']}\n"
         f"📅 Subscription valid until: {user_data['subscription']}\n\n"
         f"📊 Invoices created: {len(FirestoreService.get_users_invoices(user_id))}"
     )
@@ -144,6 +153,23 @@ async def business_info_handler(update: Update, context: CallbackContext) -> int
     return BUSINESS_MENU
 
 async def handle_create_from_info(update: Update, context: CallbackContext) -> int:
+    query = update.callback_query
+    await query.answer()
+
+    user_id = str(query.from_user.id)
+    period = FirestoreService.get_subscription_period(user_id)
+
+    
+    subscription_date = datetime.strptime(period, "%Y-%m-%d").date()
+    today = datetime.now().date()
+
+    if subscription_date < today:
+        await query.message.reply_text(
+        "⚠️ Your subscription has expired on {}. "
+        "Please upgrade to continue using InvoiceBot.".format(period)
+        )
+        return ConversationHandler.END
+    
     query = update.callback_query
     await query.answer()
 
@@ -322,6 +348,23 @@ async def select_business_type(update: Update, context: CallbackContext) -> int:
     """Handle new/existing business selection"""
     query = update.callback_query
     await query.answer()
+
+    user_id = str(query.from_user.id)
+    period = FirestoreService.get_subscription_period(user_id)
+
+    print("PERIOD: ", period)
+    
+    subscription_date = datetime.strptime(period, "%Y-%m-%d").date()
+    today = datetime.now().date()
+
+    if subscription_date < today:
+        await query.message.reply_text(
+        "⚠️ Your subscription has expired on {}. "
+        "Please upgrade to continue using InvoiceBot.".format(period)
+        )
+        return ConversationHandler.END
+    
+    query = update.callback_query
     
     if query.data == "create_new_business":
         # First edit the original message
