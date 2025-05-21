@@ -200,3 +200,63 @@ class FirestoreService:
         docs = users_ref.stream()
 
         return len(list(docs)) > 0
+    
+
+    @staticmethod
+    def switch_user_subscription_for_free(telegram_id: str) -> bool: 
+        try:
+            user_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
+            docs = user_ref.stream()
+
+            for doc in docs:
+                doc.reference.update({
+                    "subscription_types": '3 Invoices per month',
+                    "invoices_left": 3
+                })
+                return True
+            return False
+        except Exception as e:
+            print(f"Error updating user: {e}")
+            return False
+        
+
+
+    @staticmethod
+    def get_current_invoice_quantity(telegram_id: str) -> int:
+        try:
+            user_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
+            docs = user_ref.stream()
+
+            for doc in docs:
+                user_data = doc.to_dict()
+                actual_invoices = user_data.get("invoices_left")
+                return actual_invoices
+            return 0
+        except Exception as e:
+            print(f"Error updating user: {e}")
+            return False
+
+
+
+    @staticmethod
+    def decrease_invoice_quantity(telegram_id: str) -> bool:
+        try:
+            user_ref = db.collection("users").where("user_id", "==", telegram_id).limit(1)
+            docs = user_ref.stream()
+
+            for doc in docs:
+                user_data = doc.to_dict()
+                actual_invoices = user_data.get("invoices_left")
+                
+                updated_inv = actual_invoices - 1
+
+                doc.reference.update({
+                    "invoices_left": updated_inv
+                })
+
+                return True
+            return False
+        except Exception as e:
+            print(f"Error udpating user: {e}")
+            return False
+      

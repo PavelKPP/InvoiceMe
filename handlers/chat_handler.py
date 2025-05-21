@@ -105,7 +105,7 @@ async def account_info_handler(update: Update, context: CallbackContext) -> int:
         "👤 <b>Account Information</b>\n\n"
         f"🆔 User ID: <code>{user_data['user_id']}</code>\n"
         f"💰 Subscription Type: {user_data['subscription_types']}\n"
-        f"Invoices Left: {user_data['invoices_left']}\n"
+        f"📝 Invoices Left: {user_data['invoices_left']}\n"
         f"📅 Subscription valid until: {user_data['subscription']}\n\n"
         f"📊 Invoices created: {len(FirestoreService.get_users_invoices(user_id))}"
     )
@@ -158,31 +158,45 @@ async def handle_create_from_info(update: Update, context: CallbackContext) -> i
 
     user_id = str(query.from_user.id)
     period = FirestoreService.get_subscription_period(user_id)
-
     
     subscription_date = datetime.strptime(period, "%Y-%m-%d").date()
     today = datetime.now().date()
 
     if subscription_date < today:
+        FirestoreService.switch_user_subscription_for_free(user_id)
+        invoices_left = FirestoreService.get_current_invoice_quantity(user_id)
+
+
+        keyboard = InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("🔙 Back to Menu", callback_data="back_to_menu"),
+                InlineKeyboardButton("📝Create Business and Invoice📝", callback_data="?")
+            ]
+        ])
         await query.message.reply_text(
-        "⚠️ Your subscription has expired on {}. "
-        "Please upgrade to continue using InvoiceBot.".format(period)
+        "⚠️ Your Freemium(7 days Trial) has expired on {}. "
+        "Please upgrade to continue using InvoiceBot. As for free usage u will have {} invoices available for creation".format(period, invoices_left),
+        reply_markup=keyboard
         )
-        return ConversationHandler.END
     
+            
     query = update.callback_query
     await query.answer()
 
-    context.user_data.clear()
+    if query.data == "back_to_menu":
+        await main_menu_handler(update, context)
+    elif query.data == "?":
+        # FirestoreService.decrease_invoice_quantity(user_id)
+        context.user_data.clear()
 
-    await query.edit_message_text("Strating business creation...")
+        await query.edit_message_text("Strating business creation...")
 
-    await context.bot.send_message(     
-        chat_id = query.message.chat_id,
-        text = "🏢 Let's get your business set up!\nWhat should we call your business?",
-        reply_markup = None
-    )
-    return BUSINESS_NAME
+        await context.bot.send_message(     
+            chat_id = query.message.chat_id,
+            text = "🏢 Let's get your business set up!\nWhat should we call your business?",
+            reply_markup = None
+        )
+        return BUSINESS_NAME
 
 async def show_invoices_handler(update: Update, context: CallbackContext) -> int:
     """Show invoices for selected business"""
@@ -358,11 +372,15 @@ async def select_business_type(update: Update, context: CallbackContext) -> int:
     today = datetime.now().date()
 
     if subscription_date < today:
+        FirestoreService.switch_user_subscription_for_free(user_id)
+        invoices_left = FirestoreService.get_current_invoice_quantity(user_id)
         await query.message.reply_text(
-        "⚠️ Your subscription has expired on {}. "
-        "Please upgrade to continue using InvoiceBot.".format(period)
+        "⚠️ Your Freemium(7 days Trial) has expired on {}. "
+        "Please upgrade to continue using InvoiceBot. You have 3 invoices available for creation, would you like to create one?".format(period, invoices_left)
         )
+        FirestoreService.decrease_invoice_quantity(user_id)
         return ConversationHandler.END
+    
     
     query = update.callback_query
     
