@@ -21,7 +21,7 @@ Python, Firebase API, Sendgrid API, Telegram API, Kubernetes.
 8. Send the pdf file over user and contractor email.
 
 [ Project Structure ]:
-
+``` bash
 InvoiceBot/
 ├── handlers/ # Telegram bot conversation handlers
 │ ├── init.py
@@ -44,3 +44,4 @@ InvoiceBot/
 ├── config.py # Configuration settings
 ├── Dockerfile # Containerization
 └── requirements.txt # Python dependencies
+```
