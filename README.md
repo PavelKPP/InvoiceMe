@@ -20,20 +20,21 @@ Python, Firebase API, Sendgrid API, Telegram API, Kubernetes.
 7. Send PDF file of the invoice to the user via Telegram.
 8. Send the pdf file over user and contractor email.
 
-[ Project Structure ]: 
+[ Project Structure ]:
+
 InvoiceBot/
 ├── handlers/ # Telegram bot conversation handlers
 │ ├── init.py
-│ └── chat_handler.py # Main chat logic (M = modified recently)
+│ └── chat_handler.py # Main chat logic
 │
 ├── services/ # Backend service layers
 │ ├── init.py
 │ ├── business_service.py # Business model
 │ ├── database_service.py # Database operations
-│ ├── email_service.py # Email sending opeartions
-│ ├── firestore_service.py # Firestore interactions (M)
+│ ├── email_service.py # Email sending operations
+│ ├── firestore_service.py # Firestore interactions
 │ ├── invoice_service.py # Invoice model
-│ ├── pdf_service.py # PDF creation service
+│ └── pdf_service.py # PDF creation service
 │
 ├── venv/ # Python virtual environment
 │
